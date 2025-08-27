@@ -38,16 +38,21 @@ jobs:
       - name: Build helper image (CLI + bats)
         run: docker build -t ci-docker-bats -f /opt/ci/dood-helper.Dockerfile /opt/ci
 
-      - name: Run Bats tests inside DinD (copy workspace)
+      - name: Run Bats tests inside DinD (tests can use docker)
         run: |
           set -euo pipefail
-          CID=$(docker create --workdir /workspace ci-docker-bats bash -lc '
-            set -euo pipefail
-            chmod +x ./*.sh scripts/*.sh 2>/dev/null || true
-            command -v dos2unix >/dev/null 2>&1 && find tests -name "*.bats" -exec dos2unix {} \; || true
-            # якщо tests/ немає — вийдемо з дружнім повідомленням
-            test -d tests || { echo "No tests/ found"; exit 1; }
-            find tests -name "*.bats" -exec bats {} +
-          ')
+          CID=$(docker create \
+            -v dind-run:/var/run \
+            --workdir /workspace \
+            ci-docker-bats bash -lc '
+              set -euo pipefail
+              docker version >/dev/null
+
+              # нормалізуй CRLF за потреби
+              command -v dos2unix >/dev/null 2>&1 && find tests -name "*.bats" -exec dos2unix {} \; || true
+
+              # запусти всі тести
+              find tests -name "*.bats" -exec bats {} +
+            ')
           docker cp . "$CID":/workspace
           docker start -a "$CID"
