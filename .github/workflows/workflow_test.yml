@@ -36,7 +36,7 @@ jobs:
         run: docker build -t ci-docker-bats -f /opt/ci/dood-helper.Dockerfile /opt/ci
 
       - name: Build app image inside DinD
-        run: docker build -t app-tests -f ci/Dockerfile .
+        run: docker build -t app-tests -f /opt/ci/Dockerfile .
 
       - name: Run Bats tests inside DinD
         run: |
