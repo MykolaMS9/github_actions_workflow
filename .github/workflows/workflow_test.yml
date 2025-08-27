@@ -31,10 +31,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      - run: |
-          pwd
-          ls -la
-          ls -la /opt/ci || true
 
       - name: Docker reachable?
         run: docker version && docker info | head -20
@@ -42,28 +38,15 @@ jobs:
       - name: Build helper image (CLI + bats)
         run: docker build -t ci-docker-bats -f /opt/ci/dood-helper.Dockerfile /opt/ci
 
-      - name: Where are the files?
-        run: |
-          echo "PWD: $PWD"
-          ls -la
-          echo "--- /opt/ci ---"
-          ls -la /opt/ci || true
-          echo "--- find dockerfiles ---"
-          find /opt -maxdepth 3 -type f -iname '*dockerfile*' -print 2>/dev/null || true
-
-      - name: Prepare app Dockerfile in workspace
-        run: cp ./ci/Dockerfile ./App.Dockerfile
-
-      - name: Build app image inside DinD
-        run: docker build -t app-tests -f ./App.Dockerfile .
-
       - name: Run Bats tests inside DinD (via helper)
         run: |
           docker run --rm \
             -v "$PWD":/workspace \
             -w /workspace \
-            ci-docker-bats bash -lc "
-              chmod +x scripts/*.sh 2>/dev/null || true
-              command -v dos2unix >/dev/null 2>&1 && find tests -name '*.bats' -exec dos2unix {} \; || true
-              find tests -name '*.bats' -exec bats {} +
-            "
+            ci-docker-bats bash -lc '
+              set -euo pipefail
+              chmod +x ./*.sh scripts/*.sh 2>/dev/null || true
+              command -v dos2unix >/dev/null 2>&1 && find tests -name "*.bats" -exec dos2unix {} \; || true
+              find tests -name "*.bats" -exec bats {} +
+            '
+            
