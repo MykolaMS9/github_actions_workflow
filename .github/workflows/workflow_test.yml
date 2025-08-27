@@ -43,7 +43,7 @@ jobs:
         run: docker build -t ci-docker-bats -f /opt/ci/dood-helper.Dockerfile /opt/ci
 
       - name: Prepare app Dockerfile in workspace
-        run: cp /opt/ci/Dockerfile ./App.Dockerfile
+        run: cp ./ci/Dockerfile ./App.Dockerfile
 
       - name: Build app image inside DinD
         run: docker build -t app-tests -f ./App.Dockerfile .
