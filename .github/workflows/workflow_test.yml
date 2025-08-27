@@ -54,7 +54,7 @@ jobs:
             -v "$PWD":/workspace \
             -w /workspace \
             ci-docker-bats bash -lc "
-              command -v dos2unix >/dev/null 2>&1 && \
-                find tests -name '*.bats' -exec dos2unix {} \; || true
+              chmod +x scripts/*.sh 2>/dev/null || true
+              command -v dos2unix >/dev/null 2>&1 && find tests -name '*.bats' -exec dos2unix {} \; || true
               find tests -name '*.bats' -exec bats {} +
             "
