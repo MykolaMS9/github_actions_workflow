@@ -40,13 +40,9 @@ jobs:
 
       - name: Run Bats tests inside DinD (via helper)
         run: |
-          docker run --rm \
-            -v "$PWD":/workspace \
-            -w /workspace \
-            ci-docker-bats bash -lc '
+          docker run --rm -v "$PWD":/workspace -w /workspace ci-docker-bats bash -lc '
               set -euo pipefail
               chmod +x ./*.sh scripts/*.sh 2>/dev/null || true
               command -v dos2unix >/dev/null 2>&1 && find tests -name "*.bats" -exec dos2unix {} \; || true
               find tests -name "*.bats" -exec bats {} +
             '
-            
