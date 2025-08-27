@@ -1,0 +1,50 @@
+name: Bats Tests (DinD)
+
+on:
+  push:
+    branches: [master, alpha]
+  pull_request:
+    branches: [master, alpha]
+
+jobs:
+  test:
+    runs-on: [self-hosted, hetzner]
+
+    container:
+      image: docker:24-cli
+      env:
+        DOCKER_TLS_CERTDIR: ""
+      options: >-
+        -v dind-run:/var/run
+        -v dind-storage:/var/lib/docker
+        --add-host=host.docker.internal:host-gateway
+
+    services:
+      docker:
+        image: docker:24-dind
+        env:
+          DOCKER_TLS_CERTDIR: ""
+        options: >-
+          --privileged
+          -v dind-run:/var/run
+          -v dind-storage:/var/lib/docker
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build helper image (CLI + bats)
+        run: docker build -t ci-docker-bats -f ci/dood-helper.Dockerfile ci
+
+      - name: Build app image inside DinD
+        run: docker build -t app-tests -f ci/Dockerfile .
+
+      - name: Run Bats tests inside DinD
+        run: |
+          docker run --rm \
+            -v "$PWD":/workspace \
+            -w /workspace \
+            app-tests bash -lc "
+              command -v dos2unix >/dev/null 2>&1 && \
+                find tests -name '*.bats' -exec dos2unix {} \; || true
+              find tests -name '*.bats' -exec bats {} +
+            "
