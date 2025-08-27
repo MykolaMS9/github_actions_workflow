@@ -15,9 +15,9 @@ jobs:
       env:
         DOCKER_TLS_CERTDIR: ""
       options: >-
+        -v /opt/ci:/opt/ci
         -v dind-run:/var/run
         -v dind-storage:/var/lib/docker
-        --add-host=host.docker.internal:host-gateway
 
     services:
       docker:
@@ -33,7 +33,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Build helper image (CLI + bats)
-        run: docker build -t ci-docker-bats -f ci/dood-helper.Dockerfile ci
+        run: docker build -t ci-docker-bats -f /opt/ci/dood-helper.Dockerfile /opt/ci
 
       - name: Build app image inside DinD
         run: docker build -t app-tests -f ci/Dockerfile .
