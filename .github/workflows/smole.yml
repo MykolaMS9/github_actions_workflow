@@ -3,9 +3,35 @@ name: Smoke Tests
 on: [push, pull_request]
 
 jobs:
-  build:
+  smoke:
     runs-on: [self-hosted, hetzner, docker]
+    env:
+      DOCKER_HOST: unix:///var/run/docker.sock 
     steps:
-    - uses: actions/checkout@v3
-    - name: Run smoke test
-      run: echo "Smoke test passed!"
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Verify docker is reachable
+        run: |
+          docker info
+          docker version
+
+      - name: Build tiny image
+        run: |
+          cat > Dockerfile.smoke <<'EOF'
+          FROM alpine:3.20
+          RUN echo "hello from socket" > /msg.txt
+          CMD ["cat", "/msg.txt"]
+          EOF
+          docker build -t socket-smoke -f Dockerfile.smoke .
+
+      - name: Run image and assert output
+        run: |
+          OUT="$(docker run --rm socket-smoke)"
+          echo "Container said: $OUT"
+          test "$OUT" = "hello from socket"
+
+      - name: Cleanup
+        if: always()
+        run: |
+          docker image rm -f socket-smoke || true
