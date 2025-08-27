@@ -4,7 +4,7 @@ on: [push, pull_request]
 
 jobs:
   build:
-    runs-on: [self-hosted, hetzner]
+    runs-on: [self-hosted, hetzner,docker]
     steps:
     - uses: actions/checkout@v3
     - name: Run smoke test
