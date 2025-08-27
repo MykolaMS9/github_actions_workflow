@@ -31,19 +31,29 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+      - run: |
+          pwd
+          ls -la
+          ls -la /opt/ci || true
+
+      - name: Docker reachable?
+        run: docker version && docker info | head -20
 
       - name: Build helper image (CLI + bats)
         run: docker build -t ci-docker-bats -f /opt/ci/dood-helper.Dockerfile /opt/ci
 
-      - name: Build app image inside DinD
-        run: docker build -t app-tests -f /opt/ci/Dockerfile .
+      - name: Prepare app Dockerfile in workspace
+        run: cp /opt/ci/Dockerfile ./App.Dockerfile
 
-      - name: Run Bats tests inside DinD
+      - name: Build app image inside DinD
+        run: docker build -t app-tests -f ./App.Dockerfile .
+
+      - name: Run Bats tests inside DinD (via helper)
         run: |
           docker run --rm \
             -v "$PWD":/workspace \
             -w /workspace \
-            app-tests bash -lc "
+            ci-docker-bats bash -lc "
               command -v dos2unix >/dev/null 2>&1 && \
                 find tests -name '*.bats' -exec dos2unix {} \; || true
               find tests -name '*.bats' -exec bats {} +
