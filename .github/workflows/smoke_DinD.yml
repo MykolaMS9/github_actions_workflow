@@ -1,0 +1,38 @@
+name: Smoke (DinD socket)
+on: [push, pull_request]
+
+jobs:
+  dind:
+    runs-on: [self-hosted, hetzner]
+
+    container:
+      image: docker:24-cli
+      env:
+        DOCKER_TLS_CERTDIR: ""
+      options: >-
+        --add-host=host.docker.internal:host-gateway
+        -v dind-run:/var/run
+
+    services:
+      docker:
+        image: docker:24-dind
+        env:
+          DOCKER_TLS_CERTDIR: ""
+        options: >-
+          --privileged
+          -v dind-run:/var/run
+          -v dind-storage:/var/lib/docker
+
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          ls -l /var/run/docker.sock || true
+          docker version
+      - run: |
+          cat > Dockerfile <<'EOF'
+          FROM busybox:1.36
+          CMD echo "hello from DinD socket"
+          EOF
+          docker build -t smoke:dind-sock .
+      - run: docker run --rm smoke:dind-sock
+      
