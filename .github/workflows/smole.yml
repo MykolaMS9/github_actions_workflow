@@ -1,4 +1,4 @@
-name: Smoke Tests
+name: Smoke (Docker via socket)
 
 on: [push, pull_request]
 
@@ -25,3 +25,4 @@ jobs:
 
       - name: Run container
         run: docker run --rm smoke:ci
+        
