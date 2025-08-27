@@ -42,6 +42,15 @@ jobs:
       - name: Build helper image (CLI + bats)
         run: docker build -t ci-docker-bats -f /opt/ci/dood-helper.Dockerfile /opt/ci
 
+      - name: Where are the files?
+        run: |
+          echo "PWD: $PWD"
+          ls -la
+          echo "--- /opt/ci ---"
+          ls -la /opt/ci || true
+          echo "--- find dockerfiles ---"
+          find /opt -maxdepth 3 -type f -iname '*dockerfile*' -print 2>/dev/null || true
+
       - name: Prepare app Dockerfile in workspace
         run: cp ./ci/Dockerfile ./App.Dockerfile
 
