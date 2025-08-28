@@ -6,12 +6,12 @@ jobs:
     runs-on: [self-hosted, hetzner]
 
     container:
-      image: docker:24-cli
+      image: ubuntu:24.04
       env:
         DOCKER_TLS_CERTDIR: ""
       options: >-
-        --add-host=host.docker.internal:host-gateway
         -v dind-run:/var/run
+        -v dind-storage:/var/lib/docker
 
     services:
       docker:
