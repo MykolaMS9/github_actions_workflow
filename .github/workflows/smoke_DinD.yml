@@ -2,15 +2,16 @@ name: Smoke (DinD socket)
 on: [push, pull_request]
 
 jobs:
-  dind:
+  test:
     runs-on: [self-hosted, hetzner]
 
     container:
       image: ubuntu:24.04
       env:
         DOCKER_TLS_CERTDIR: ""
+        DOCKER_HOST: unix:///run/docker.sock
       options: >-
-        -v dind-run:/var/run
+        -v dind-run:/run  
         -v dind-storage:/var/lib/docker
 
     services:
@@ -20,7 +21,7 @@ jobs:
           DOCKER_TLS_CERTDIR: ""
         options: >-
           --privileged
-          -v dind-run:/var/run
+          -v dind-run:/var/run  
           -v dind-storage:/var/lib/docker
 
     steps:
@@ -33,12 +34,14 @@ jobs:
 
       - name: Wait for DinD (socket)
         run: |
-          ls -l /var/run || true
+          echo "DOCKER_HOST=$DOCKER_HOST"
+          mount | grep -E ' /run | /var/run ' || true
           for i in $(seq 1 30); do
-            if [ -S /var/run/docker.sock ] && docker version >/dev/null 2>&1; then
+            if [ -S /run/docker.sock ] && docker version >/dev/null 2>&1; then
               echo "dockerd is up"; exit 0
             fi
             echo "waiting for dockerd ($i/30)…"
+            ls -l /run /var/run 2>/dev/null || true
             sleep 2
           done
           echo "dockerd did not come up" >&2
