@@ -29,27 +29,40 @@ jobs:
           -v dind-storage:/var/lib/docker
 
     steps:
-      - uses: actions/checkout@v4
+    - uses: actions/checkout@v4
 
-      - name: Install Docker CLI in job container
-        run: |
-          apt-get update -qq
-          apt-get install -y docker.io ca-certificates curl git
+    - name: Install Docker CLI in job container
+      run: |
+        apt-get update -qq
+        apt-get install -y docker.io ca-certificates curl git
 
-      - name: Docker reachable?
-        run: docker version && docker info | head -20
-        
-      - name: Build helper image from repo (Ubuntu + bats)
-        run: docker build -t ci-docker-bats -f ci/Dockerfile .
+    - name: Wait for DinD (socket)
+      run: |
+        ls -l /var/run || true
+        for i in $(seq 1 30); do
+          if [ -S /var/run/docker.sock ] && docker version >/dev/null 2>&1; then
+            echo "dockerd is up"; exit 0
+          fi
+          echo "waiting for dockerd ($i/30)…"
+          sleep 2
+        done
+        echo "dockerd did not come up" >&2
+        exit 1
 
-      - name: Run Bats tests inside DinD (copy workspace)
-        run: |
+    - name: Docker reachable?
+      run: docker version && docker info | head -20
+
+    - name: Build helper image from repo (Ubuntu + bats)
+      run: docker build -t ci-docker-bats -f ci/Dockerfile .
+
+    - name: Run Bats tests inside DinD (copy workspace)
+      run: |
+        set -euo pipefail
+        CID=$(docker create --workdir /workspace ci-docker-bats bash -lc '
           set -euo pipefail
-          CID=$(docker create --workdir /workspace ci-docker-bats bash -lc '
-            set -euo pipefail
-            command -v bats
-            test -d tests || { echo "No tests/ found"; exit 1; }
-            find tests -name "*.bats" -exec bats {} +
-          ')
-          docker cp . "$CID":/workspace
-          docker start -a "$CID"
+          command -v bats
+          test -d tests || { echo "No tests/ found"; exit 1; }
+          find tests -name "*.bats" -exec bats {} +
+        ')
+        docker cp . "$CID":/workspace
+        docker start -a "$CID"

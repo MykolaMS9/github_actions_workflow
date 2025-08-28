@@ -30,6 +30,19 @@ jobs:
         run: |
           apt-get update -qq
           apt-get install -y docker.io ca-certificates curl git
+
+      - name: Wait for DinD (socket)
+        run: |
+          ls -l /var/run || true
+          for i in $(seq 1 30); do
+            if [ -S /var/run/docker.sock ] && docker version >/dev/null 2>&1; then
+              echo "dockerd is up"; exit 0
+            fi
+            echo "waiting for dockerd ($i/30)…"
+            sleep 2
+          done
+          echo "dockerd did not come up" >&2
+          exit 1
       
       - name: Build helper image from repo (Ubuntu + bats)
         run: docker build -t ci-docker-bats -f ci/Dockerfile .
