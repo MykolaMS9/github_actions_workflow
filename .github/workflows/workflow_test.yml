@@ -1,0 +1,47 @@
+name: Bats Tests (DinD)
+
+on:
+  push:
+    branches: [master, alpha]
+  pull_request:
+    branches: [master, alpha]
+
+jobs:
+  test:
+    runs-on: [self-hosted, hetzner]
+
+    container:
+      image: ubuntu:24.04
+      env:
+        DOCKER_TLS_CERTDIR: ""
+        DOCKER_HOST: unix:///run/docker.sock
+      options: >-
+        -v dind-run:/var/run
+
+    services:
+      docker:
+        image: docker:24-dind
+        env:
+          DOCKER_TLS_CERTDIR: ""
+        options: >-
+          --group-add 2375
+          -v dind-run:/var/run
+          -v dind-storage:/var/lib/docker
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Docker CLI in job container
+        run: |
+          apt-get update -qq
+          apt-get install -y docker.io ca-certificates curl git
+
+      - name: Run BATS via script
+        env:
+          DOCKER_HOST: unix:///var/run/docker.sock
+          DOCKER_BUILDKIT: "0"
+          HELPER_IMAGE: ci-docker-bats
+        run: |
+          chmod +x ci/bats_run.sh || true
+          ./ci/bats_run.sh
+          

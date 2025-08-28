@@ -1,0 +1,28 @@
+name: Smoke (Docker via socket)
+
+on: [push, pull_request]
+
+jobs:
+  smoke:
+    runs-on: [self-hosted, hetzner]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Show Docker info
+        run: |
+          whoami
+          id
+          docker version
+          docker info | head -20
+
+      - name: Build tiny image
+        run: |
+          cat > Dockerfile.smoke <<'EOF'
+          FROM busybox:1.36
+          CMD echo "hello from socket"
+          EOF
+          docker build -t smoke:ci -f Dockerfile.smoke .
+
+      - name: Run container
+        run: docker run --rm smoke:ci
+        # 1
