@@ -16,8 +16,7 @@ jobs:
         DOCKER_TLS_CERTDIR: ""
         DOCKER_HOST: unix:///run/docker.sock
       options: >-
-        -v dind-run:/run  
-        -v dind-storage:/var/lib/docker
+        -v dind-run:/var/run
 
     services:
       docker:
@@ -25,8 +24,8 @@ jobs:
         env:
           DOCKER_TLS_CERTDIR: ""
         options: >-
-          --privileged
-          -v dind-run:/var/run  
+          --group-add 2375
+          -v dind-run:/var/run
           -v dind-storage:/var/lib/docker
 
     steps:
@@ -37,32 +36,18 @@ jobs:
         apt-get update -qq
         apt-get install -y docker.io ca-certificates curl git
 
-    - name: Wait for DinD (socket) & fix perms
+    - name: Wait for DinD (socket)
       env:
-        DOCKER_HOST: unix:///run/docker.sock
+        DOCKER_HOST: unix:///var/run/docker.sock
       run: |
-        echo "DOCKER_HOST=$DOCKER_HOST"
-        # чекаємо появи файлу сокета
         for i in $(seq 1 30); do
-          if [ -S /run/docker.sock ]; then
-            ls -l /run/docker.sock
-            chmod 666 /run/docker.sock || true   # ← ключова правка
-            break
-          fi
-          echo "waiting for /run/docker.sock ($i/30)…"
-          sleep 2
-        done
-        # перевіряємо доступність API
-        for i in $(seq 1 30); do
-          if docker --debug version >/dev/null 2>&1; then
+          if [ -S /var/run/docker.sock ] && docker version >/dev/null 2>&1; then
             echo "dockerd is up"; exit 0
           fi
-          echo "waiting for dockerd API ($i/30)…"
-          # корисно: прямий ping до демона
-          (command -v curl >/dev/null 2>&1 && curl --unix-socket /run/docker.sock http://localhost/_ping || true)
+          ls -l /var/run/docker.sock || true
+          echo "waiting ($i/30)…"
           sleep 2
         done
-        echo "dockerd did not come up" >&2
         exit 1
 
     - name: Docker reachable?
