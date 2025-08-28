@@ -25,6 +25,11 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+
+      - name: Install Docker CLI in job container
+        run: |
+          apt-get update -qq
+          apt-get install -y docker.io ca-certificates curl git
       
       - name: Build helper image from repo (Ubuntu + bats)
         run: docker build -t ci-docker-bats -f ci/Dockerfile .
