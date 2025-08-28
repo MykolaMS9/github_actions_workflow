@@ -41,7 +41,6 @@ jobs:
       env:
         DOCKER_HOST: unix:///run/docker.sock
       run: |
-        set -euo pipefail
         echo "DOCKER_HOST=$DOCKER_HOST"
         for i in $(seq 1 30); do
           if [ -S /run/docker.sock ]; then
