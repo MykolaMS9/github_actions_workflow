@@ -25,6 +25,10 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+      
+      - name: Build helper image from repo (Ubuntu + bats)
+        run: docker build -t ci-docker-bats -f ci/Dockerfile .
+
       - run: |
           ls -l /var/run/docker.sock || true
           docker version
