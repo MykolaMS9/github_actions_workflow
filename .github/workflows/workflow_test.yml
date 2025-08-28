@@ -33,7 +33,6 @@ jobs:
 
     - name: Install Docker CLI + Buildx (official repo)
       run: |
-        set -euo pipefail
         # optional: якщо раніше вже ставив docker.io — прибери, щоб уникнути конфліктів
         apt-get update -qq
         apt-get remove -y docker.io || true
