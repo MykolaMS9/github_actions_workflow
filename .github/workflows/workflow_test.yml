@@ -29,53 +29,19 @@ jobs:
           -v dind-storage:/var/lib/docker
 
     steps:
-    - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-    - name: Install Docker CLI in job container
-      run: |
-        apt-get update -qq
-        apt-get install -y docker.io ca-certificates curl git
+      - name: Install Docker CLI in job container
+        run: |
+          apt-get update -qq
+          apt-get install -y docker.io ca-certificates curl git
 
-    - name: Wait for DinD (socket)
-      env:
-        DOCKER_HOST: unix:///var/run/docker.sock
-      run: |
-        for i in $(seq 1 30); do
-          if [ -S /var/run/docker.sock ] && docker version >/dev/null 2>&1; then
-            echo "dockerd is up"; exit 0
-          fi
-          ls -l /var/run/docker.sock || true
-          echo "waiting ($i/30)…"
-          sleep 2
-        done
-        exit 1
-
-    - name: Docker reachable?
-      run: docker version && docker info | head -20
-
-    - name: Create helper Dockerfile
-      run: |
-        mkdir -p ci
-        cat > ci/Dockerfile <<'EOF'
-        FROM ubuntu:24.04
-        ENV DEBIAN_FRONTEND=noninteractive
-        RUN apt-get update -qq && apt-get install -y \
-            bash sudo curl jq ca-certificates gnupg bats wget \
-          && rm -rf /var/lib/apt/lists/*
-        WORKDIR /workspace
-        EOF
-
-    - name: Build helper image from repo (Ubuntu + bats)
-      env:
-        DOCKER_BUILDKIT: "0"
-      run: docker build -t ci-docker-bats -f ci/Dockerfile .
-
-    - name: Run Bats tests inside DinD (copy workspace)
-      run: |
-        CID=$(docker create --workdir /workspace ci-docker-bats bash -lc '
-          command -v bats
-          test -d tests || { echo "No tests/ found"; exit 1; }
-          find tests -name "*.bats" -exec bats {} +
-        ')
-        docker cp . "$CID":/workspace
-        docker start -a "$CID"
+      - name: Run BATS via script
+        env:
+          DOCKER_HOST: unix:///var/run/docker.sock
+          DOCKER_BUILDKIT: "0"
+          HELPER_IMAGE: ci-docker-bats
+        run: |
+          chmod +x ci/bats_run.sh || true
+          ./ci/bats_run.sh
+          
