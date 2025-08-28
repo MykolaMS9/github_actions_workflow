@@ -32,16 +32,26 @@ jobs:
           apt-get update -qq
           apt-get install -y docker.io ca-certificates curl git
 
-      - name: Wait for DinD (socket)
+      - name: Wait for DinD socket & relax perms
+        env:
+          DOCKER_HOST: unix:///run/docker.sock
         run: |
+          set -euo pipefail
           echo "DOCKER_HOST=$DOCKER_HOST"
-          mount | grep -E ' /run | /var/run ' || true
           for i in $(seq 1 30); do
-            if [ -S /run/docker.sock ] && docker version >/dev/null 2>&1; then
+            if [ -S /run/docker.sock ]; then
+              ls -l /run/docker.sock
+              chmod 666 /run/docker.sock || true
+              break
+            fi
+            echo "waiting for /run/docker.sock ($i/30)…"
+            sleep 2
+          done
+          for i in $(seq 1 30); do
+            if docker version >/dev/null 2>&1; then
               echo "dockerd is up"; exit 0
             fi
-            echo "waiting for dockerd ($i/30)…"
-            ls -l /run /var/run 2>/dev/null || true
+            echo "waiting for dockerd API ($i/30)…"
             sleep 2
           done
           echo "dockerd did not come up" >&2
