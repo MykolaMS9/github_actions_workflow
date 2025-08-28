@@ -53,7 +53,21 @@ jobs:
     - name: Docker reachable?
       run: docker version && docker info | head -20
 
+    - name: Create helper Dockerfile
+      run: |
+        mkdir -p ci
+        cat > ci/Dockerfile <<'EOF'
+        FROM ubuntu:24.04
+        ENV DEBIAN_FRONTEND=noninteractive
+        RUN apt-get update -qq && apt-get install -y \
+            bash sudo curl jq ca-certificates gnupg bats wget \
+          && rm -rf /var/lib/apt/lists/*
+        WORKDIR /workspace
+        EOF
+
     - name: Build helper image from repo (Ubuntu + bats)
+      env:
+        DOCKER_BUILDKIT: "1"
       run: docker build -t ci-docker-bats -f ci/Dockerfile .
 
     - name: Run Bats tests inside DinD (copy workspace)
